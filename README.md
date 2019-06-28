@@ -5,12 +5,6 @@ This is how it should look like:
 ![](bert-demo2.png)
 
 
-### Using the code 
-
-```
-> python -m spacy download en_core_web_sm
-```
-
 ### Running the demo 
 To install the python dependencies, simply do: 
 ```python 
