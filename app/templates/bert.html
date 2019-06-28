@@ -1,0 +1,205 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css"
+          integrity="sha384-MCw98/SFnGE8fJT3GXwEOngsV7Zt27NXFoaoApmYm81iuXoPkFOJwJ8ERdknLPMO" crossorigin="anonymous">
+
+    <script
+            src="https://code.jquery.com/jquery-3.3.1.min.js"
+            integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8="
+            crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.3/umd/popper.min.js"
+            integrity="sha384-ZMP7rVo3mIykV+2+9J3UJ46jBk0WLaUAdn689aCwoqbBJiSnjAK/l8WvCWPIPm49"
+            crossorigin="anonymous"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/js/bootstrap.min.js"
+            integrity="sha384-ChfqqxuZUCnJSK3+MXmPNIyE6ZbWh2IMqE241rYiqJxyMiZ6OW/JmZQ5stwEULTy"
+            crossorigin="anonymous"></script>
+
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <title>Perspective Annotation Interface</title>
+    {% csrf_token %}
+</head>
+<body>
+<style>
+    .loader {
+        border: 3px solid whitesmoke;
+        border-radius: 50%;
+        border-top: 3px solid black;
+        width: 40px;
+        height: 40px;
+        -webkit-animation: spin 1s linear infinite;
+        animation: spin 1s linear infinite;
+        margin-right: auto;
+        margin-left: auto;
+        position: absolute;
+        visibility: hidden;
+    }
+
+    @-webkit-keyframes spin {
+        0% {
+            -webkit-transform: rotate(0deg);
+        }
+        100% {
+            -webkit-transform: rotate(360deg);
+        }
+    }
+
+    @keyframes spin {
+        0% {
+            transform: rotate(0deg);
+        }
+        100% {
+            transform: rotate(360deg);
+        }
+    }
+</style>
+
+<div class="container">
+    <div class="jumbotron jumbotron-fluid">
+        <div class="container">
+            <h1 class="display-4">BERT Demo</h1>
+            <!--<p class="lead">This is a modified jumbotron that occupies the entire horizontal space of its parent.</p>-->
+        </div>
+    </div>
+
+    <br>
+
+    Enter at least a sentence with a masked token, indicated with @.
+
+    <div class="input-group">
+
+        <br>
+
+    </div>
+    <input id="inputA" type="text" aria-label="A" value="{{ sent1 }}" class="form-control" style="width: 100%"
+           placeholder="Option sentence">
+    <br>
+    <input id="inputB" type="text" aria-label="B" value="{{ sent2 }}" class="form-control" style="width: 100%"
+           placeholder="Mandatory sentence with at least one masked token indicated with @.">
+    <br>
+
+    <div class="custom-control custom-radio">
+        <input type="radio" class="custom-control-input" id="customradio1" value="1" name="group1"
+                {% if alg == "perToken" %} checked {% endif %}>
+        <label class="custom-control-label" for="customradio1">Per-token independent predictions</label>
+    </div>
+    <div class="custom-control custom-radio">
+        <input type="radio" class="custom-control-input" id="customradio2" value="2" name="group1"
+                {% if alg == "greedy" %} checked {% endif %}>
+        <label class="custom-control-label" for="customradio2">Greedy choices (left to right)</label>
+    </div>
+    <div class="custom-control custom-radio">
+        <input type="radio" class="custom-control-input" id="customradio3" value="3" name="group1"
+                {% if alg == "beamSearch" %} checked {% endif %}>
+        <label class="custom-control-label" for="customradio3">Beam search</label>
+    </div>
+    <div class="custom-control custom-radio">
+        <input type="radio" class="custom-control-input" id="customradio4" value="4" name="group1"
+                {% if alg == "nextSentence" %} checked {% endif %}>
+        <label class="custom-control-label" for="customradio4">Next Sentence Prediction</label>
+    </div>
+
+    <div style="text-align: center;">
+        <button class="btn btn-outline-success" type="button" id="button-run">Run!</button>
+        <button class="btn btn-outline-danger" type="button" id="button-clean">Clean!</button>
+    </div>
+    <br>
+    <div id="loader_container" style="height: 55px; margin-left: 48%">
+        <div class="loader" id="loader-main"></div>
+    </div>
+    {#<div class="alert alert-secondary" role="alert"  id="output">#}
+    {% if nextSentence is not None %}
+        <div class="alert alert-primary" role="alert">
+            Is Next Sentence: <b color="green" ><font color="{{ nextSentence_color }}">{{ nextSentence }} ({{ nextSentence_score }})</font></b>
+            v.s. {{ nextSentence_neg }} ({{ nextSentence_neg_score }})
+        </div>
+    {% endif %}
+    <div style="overflow-x: scroll; overflow-y: hidden;  border: 1px solid gray;">
+        <div style="white-space:nowrap;">
+            <table class="table table-sm">
+                <thead>
+                <tr>
+                    {% for t in tokens %}
+                        <th scope="col">{{ t }}</th>
+                    {% endfor %}
+                </tr>
+                </thead>
+                <tbody>
+                {% for row in table %}
+                    <tr>
+                        {% for t in row %}
+                            <td scope="row">{{ t }}</td>
+                        {% endfor %}
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <br><br><br>
+    {#</div>#}
+
+</div>
+<script>
+    $('#button-clean').click(function () {
+        location.href = "/";
+    });
+
+    $('#button-run').click(function () {
+        if ($('#inputB').val().trim() === "") {
+            $('#inputB').addClass("border-danger");
+        } else {
+            var A = $('#inputA').val().trim();
+            var B = $('#inputB').val().trim();
+
+            if (A.length === 0) {
+                A = " "
+            }
+
+            var alg = "";
+            if ($("#customradio1").is(":checked")) {
+                alg = "perToken"
+            }
+            if ($("#customradio2").is(":checked")) {
+                alg = "greedy"
+            }
+            if ($("#customradio3").is(":checked")) {
+                alg = "beamSearch"
+            }
+            if ($("#customradio4").is(":checked")) {
+                alg = "nextSentence"
+            }
+
+            document.getElementById("loader-main").style.visibility = "visible";
+
+            location.href = "/ " + encodeURIComponent(A) + "/" + encodeURIComponent(B) + "/" + alg;
+        }
+    });
+
+    function error() {
+        console.log("an error happened ... ");
+        document.getElementById("loader-main").style.visibility = "hidden";
+    }
+
+    document.getElementById("loader-main").style.visibility = "hidden";
+
+</script>
+
+<style>
+    ::-webkit-scrollbar {
+        -webkit-appearance: none;
+        width: 5px;
+    }
+
+    ::-webkit-scrollbar-thumb {
+        border-radius: 10px;
+        background-color: rgba(0, 0, 0, .5);
+        -webkit-box-shadow: 0 0 1px rgba(255, 255, 255, .5);
+    }
+</style>
+
+</body>
+
+</html>
