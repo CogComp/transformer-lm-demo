@@ -1,13 +1,12 @@
 # ??
 [![Build Status](https://semaphoreci.com/api/v1/projects/eef617cc-9864-43de-b70f-b4d58e7002b2/2588073/badge.svg)](https://semaphoreci.com/danyaljj/bert-analogies)
 
-TODO
+This is how it should look like: 
 
-## Getting started 
-TODO
+![](bert-demo.png)
+
 
 ### Using the code 
-TODO
 
 ```
 > python -m spacy download en_core_web_sm
@@ -30,12 +29,6 @@ $ python3.6 manage.py runserver
 ```
 
 
-**Note** Parts of the code are taken from the following project: https://github.com/google/categorybuilder 
 
 
-## Citation:
-If you find this work useful, please cite the following paper: 
-```bibtex 
-?
-```
 
