@@ -1,9 +1,9 @@
-# ??
+# BERT demo
 [![Build Status](https://semaphoreci.com/api/v1/projects/eef617cc-9864-43de-b70f-b4d58e7002b2/2588073/badge.svg)](https://semaphoreci.com/danyaljj/bert-analogies)
 
 This is how it should look like: 
 
-![](bert-demo.png)
+![](bert-demo2.png)
 
 
 ### Using the code 
