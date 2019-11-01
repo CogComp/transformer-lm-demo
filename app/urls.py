@@ -22,7 +22,4 @@ urlpatterns = [
 
     path('', views.bert_demo),
     path('<str:sent1>/<str:sent2>/<str:alg>', views.bert_calculations),
-
-    path('winograd/', views.winograd_frontend),
-    path('winograd/<str:sent>', views.winograd_solver),
 ]

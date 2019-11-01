@@ -4,43 +4,15 @@ import random
 
 from django.shortcuts import render, redirect
 from django.views.decorators.csrf import csrf_exempt
-from django.http import HttpResponse
 from app.bert_lm import BERT_LM_predictions
 
-# from bert_expansion import BertExpansion
-from app.bert_expansion import BertExpansion
-
-# BE = BertExpansion()
-# from app.winograd import WinogradSolver
 
 def winograd_frontend(request):
     return render(request, 'winograd.html', {})
 
 
-# winoSolver = WinogradSolver()
 BLM = BERT_LM_predictions()
 
-
-# @csrf_exempt
-# def winograd_solver(request, sent):
-#     log = winoSolver.solve(sent, BLM)
-#     predictedTokens = log["predictedTokens"]
-#     mentions = log["mentions"]
-#     table = []
-#     random_value = random.choice(list(predictedTokens.values()))
-#     num_rows = len(random_value)
-#     for rowId in list(range(0, num_rows)):
-#         row = []
-#         for mentionId, _ in enumerate(mentions):
-#             row.append(predictedTokens[mentionId][rowId])
-#         table.append(row)
-#
-#     log["sent"] = sent
-#     log["table"] = table
-#
-#     return render(request, 'winograd.html', log)
-
-# ben_BLM = Ben_BERT_LM_predictions()
 
 def bert_demo(request):
     context = {
