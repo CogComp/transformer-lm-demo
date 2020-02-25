@@ -2,6 +2,8 @@ import json
 import os
 import random
 
+from django.http import HttpResponse
+from django.views.decorators.clickjacking import xframe_options_exempt
 from django.shortcuts import render, redirect
 from django.views.decorators.csrf import csrf_exempt
 from app.bert_lm import BERT_LM_predictions
@@ -13,7 +15,7 @@ def winograd_frontend(request):
 
 BLM = BERT_LM_predictions()
 
-
+@xframe_options_exempt
 def bert_demo(request):
     context = {
         "alg": "perToken"
