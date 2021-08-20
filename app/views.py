@@ -6,7 +6,9 @@ from django.http import HttpResponse
 from django.views.decorators.clickjacking import xframe_options_exempt
 from django.shortcuts import render, redirect
 from django.views.decorators.csrf import csrf_exempt
+from django.http import JsonResponse
 from app.bert_lm import BERT_LM_predictions
+
 
 
 def winograd_frontend(request):
@@ -22,6 +24,14 @@ def bert_demo(request):
     }
 
     return render(request, 'bert.html', context)
+
+@csrf_exempt
+def get_server_status(request):
+    return JsonResponse({"status": "online"})
+
+
+def exit_server(request):
+    exit(0)  #TODO: don't know if it is safe to do this
 
 
 @csrf_exempt
