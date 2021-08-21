@@ -3,22 +3,24 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css"
-          integrity="sha384-MCw98/SFnGE8fJT3GXwEOngsV7Zt27NXFoaoApmYm81iuXoPkFOJwJ8ERdknLPMO" crossorigin="anonymous">
+
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.0/dist/css/bootstrap.min.css"
+          integrity="sha384-KyZXEAg3QhqLMpG8r+8fhAXLRk2vvoC2f3B09zVXn8CA5QIVfZOJ3BCsw2P0p/We" crossorigin="anonymous">
 
     <script
             src="https://code.jquery.com/jquery-3.3.1.min.js"
             integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8="
             crossorigin="anonymous"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.3/umd/popper.min.js"
-            integrity="sha384-ZMP7rVo3mIykV+2+9J3UJ46jBk0WLaUAdn689aCwoqbBJiSnjAK/l8WvCWPIPm49"
-            crossorigin="anonymous"></script>
-    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/js/bootstrap.min.js"
-            integrity="sha384-ChfqqxuZUCnJSK3+MXmPNIyE6ZbWh2IMqE241rYiqJxyMiZ6OW/JmZQ5stwEULTy"
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/2.9.3/umd/popper.min.js"
+            integrity="sha512-XLo6bQe08irJObCc86rFEKQdcFYbGGIHVXcfMsxpbvF8ompmd1SNJjqVY5hmjQ01Ts0UmmSQGfqpt3fGjm6pGA=="
+            crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.0/dist/js/bootstrap.min.js"
+            integrity="sha384-cn7l7gDp0eyniUwwAZgrzD06kc/tftFf19TOAs2zVinnD/C7E91j9yyk5//jjpt/"
             crossorigin="anonymous"></script>
 
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    <title>Perspective Annotation Interface</title>
+    <title>BERT demo</title>
     {% csrf_token %}
 </head>
 <body>
@@ -57,28 +59,36 @@
 </style>
 
 <div class="container">
-{#    <div class="jumbotron jumbotron-fluid">#}
-{#        <div class="container">#}
-{#            <h1 class="display-4">BERT Demo</h1>#}
-{#            <!--<p class="lead">This is a modified jumbotron that occupies the entire horizontal space of its parent.</p>-->#}
-{#        </div>#}
-{#    </div>#}
+    <div id="jumbo_header" class="jumbotron jumbotron-fluid" style="display: none">
+        <div class="container">
+            <h1 class="display-4">BERT Demo</h1>
+        </div>
+    </div>
 
     <br>
-
-    Enter at least a sentence with a masked token, indicated with @.
+    <div class="dropdown">
+      <a class="btn btn-secondary dropdown-toggle" href="#" role="button" id="example_dropdown" data-bs-toggle="dropdown" aria-expanded="false">
+        Example Inputs
+      </a>
+      <ul class="dropdown-menu" aria-labelledby="example_dropdown">
+        <li><a id="btn_example1" class="dropdown-item" href="#">I eat @.</a></li>
+        <li><a id="btn_example2" class="dropdown-item" href="#">@ is a professor.</a></li>
+        <li><a id="btn_example3" class="dropdown-item" href="#">@ is a nurse.</a></li>
+      </ul>
+    </div>
 
     <div class="input-group">
 
         <br>
 
     </div>
-    <input id="inputA" type="text" aria-label="A" value="{{ sent1 }}" class="form-control" style="width: 100%"
-           placeholder="Option sentence">
-    <br>
     <input id="inputB" type="text" aria-label="B" value="{{ sent2 }}" class="form-control" style="width: 100%"
-           placeholder="Mandatory sentence with at least one masked token indicated with @.">
+           placeholder="Input sentence (with at least one mask '@' token)">
     <br>
+    <input id="inputA" type="text" aria-label="A" value="{{ sent1 }}" class="form-control" style="width: 100%"
+           placeholder="(Optional) second sentence">
+    <br>
+
 
     <div class="custom-control custom-radio">
         <input type="radio" class="custom-control-input" id="customradio1" value="1" name="group1"
@@ -139,10 +149,38 @@
         </div>
     </div>
     <br><br><br>
-    {#</div>#}
 
 </div>
 <script>
+
+    function in_iframe () {
+        try {
+            return window.self !== window.top;
+        } catch (e) {
+            return true;
+        }
+    }
+
+    function bind_example(btn, example_text) {
+        $(btn).click(function() {
+            $("#inputB").val(example_text);
+        });
+    }
+
+    $(function() {
+        if (!in_iframe()) {
+            $('#jumbo_header').show();
+        }
+
+        let $btn1 = $('#btn_example1');
+        let $btn2 = $('#btn_example2');
+        let $btn3 = $('#btn_example3');
+
+        bind_example($btn1, $btn1.text());
+        bind_example($btn2, $btn2.text());
+        bind_example($btn3, $btn3.text());
+    });
+
     $('#button-clean').click(function () {
         location.href = "/";
     });
