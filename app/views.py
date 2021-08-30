@@ -2,20 +2,14 @@ import json
 import os
 import random
 
-from django.http import HttpResponse
 from django.views.decorators.clickjacking import xframe_options_exempt
-from django.shortcuts import render, redirect
+from django.shortcuts import render
 from django.views.decorators.csrf import csrf_exempt
 from django.http import JsonResponse
 from app.bert_lm import BERT_LM_predictions
 
-
-
-def winograd_frontend(request):
-    return render(request, 'winograd.html', {})
-
-
 BLM = BERT_LM_predictions()
+
 
 @xframe_options_exempt
 def bert_demo(request):
@@ -25,16 +19,14 @@ def bert_demo(request):
 
     return render(request, 'bert.html', context)
 
+
 @csrf_exempt
 def get_server_status(request):
     return JsonResponse({"status": "online"})
 
 
-def exit_server(request):
-    exit(0)  #TODO: don't know if it is safe to do this
-
-
 @csrf_exempt
+@xframe_options_exempt
 def bert_calculations(request, sent1, sent2, alg):
     ns_label = None
     ns_label_neg = None
@@ -70,9 +62,7 @@ def bert_calculations(request, sent1, sent2, alg):
     for rowId in list(range(0, num_rows)):
         row = []
         for tokenId, _ in enumerate(tokens):
-            # print(tokenId)
             if tokenId in predictedTokens:
-                # print("yess .... ")
                 row.append(predictedTokens[tokenId][rowId])
             else:
                 row.append("")

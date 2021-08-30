@@ -167,6 +167,15 @@
         });
     }
 
+    let server_url = window.location.href;
+    if (server_url.includes("perToken")
+        || server_url.includes("greedy")
+        || server_url.includes("beamSearch")
+        || server_url.includes("nextSentence")) {
+        server_url = server_url.split("/").slice(0,-3).join('/');
+        server_url += "/"
+        console.log(server_url);
+    }
     $(function() {
         if (!in_iframe()) {
             $('#jumbo_header').show();
@@ -182,7 +191,7 @@
     });
 
     $('#button-clean').click(function () {
-        location.href = "/";
+        location.href = server_url;
     });
 
     $('#button-run').click(function () {
@@ -212,7 +221,7 @@
 
             document.getElementById("loader-main").style.visibility = "visible";
 
-            location.href = "/ " + encodeURIComponent(A) + "/" + encodeURIComponent(B) + "/" + alg;
+            window.location.href = server_url + encodeURIComponent(A) + "/" + encodeURIComponent(B) + "/" + alg;
         }
     });
 
