@@ -1,135 +1,119 @@
 import math
 from typing import List
 
+import numpy as np
 import torch
-from pytorch_pretrained_bert import BertForPreTraining, BertTokenizer
+from transformers import AutoModelForMaskedLM, AutoTokenizer
 
+LIST_OF_MODEL_NAMES = ["bert-base-uncased", "roberta-base", "xlm-roberta-base"]
 
 class BERT_LM_predictions:
-    use_gpu = True
-    device = torch.device("cuda:0" if torch.cuda.is_available() and use_gpu else "cpu")
 
     max_batch_size = 250  # max number of instanes grouped together
     batch_max_length = 10  # max number of tokens in each instance
 
-    bert_model = 'bert-base-uncased'
+    def __init__(self,
+                 use_cuda: bool = False):
 
-    def __init__(self):
+        self.device = torch.device("cuda:0" if torch.cuda.is_available() and use_cuda else "cpu")
+        self.tokenizers = {}
+        self.models = {}
+
         # Load pre-trained model tokenizer (vocabulary)
-        self.tokenizer = BertTokenizer.from_pretrained(self.bert_model)
-
         # Load pre-trained model (weights)
-        self.model = BertForPreTraining.from_pretrained('bert-base-uncased')
-        self.model.eval()
+        for model in LIST_OF_MODEL_NAMES:
 
-    def vectorize_maked_instance(self, tokenized_text1: List[str], tokenized_text2: List[str]):
+            tokenizer_args = {}
+            if model.startswith('roberta'):
+                tokenizer_args["add_prefix_space"] = True
 
-        tokens = []
-        segment_ids = []
-        input_mask = []
+            self.tokenizers[model] = AutoTokenizer.from_pretrained(model, **tokenizer_args)
 
-        masked_indices = []
+            self.models[model] = AutoModelForMaskedLM.from_pretrained(model)
+            self.models[model] = self.models[model].to(self.device)
+            self.models[model].eval()
 
-        tokens.append("[CLS]")
-        segment_ids.append(0)
-        input_mask.append(1)
+    def vectorize_maked_instance(self,
+                                 text1: str,
+                                 text2: str = "",
+                                 model_name: str = LIST_OF_MODEL_NAMES[0]):
 
-        for token in tokenized_text1:
-            tokens.append(token)
-            segment_ids.append(0)
-            input_mask.append(1)
+        text1 = text1.replace("@", self.tokenizers[model_name].mask_token)
+        text2 = text2.replace("@", self.tokenizers[model_name].mask_token)
 
-        tokens.append("[SEP]")
-        segment_ids.append(0)
-        input_mask.append(1)
+        return self.tokenizers[model_name](text=text1,
+                                           text_pair=text2,
+                                           padding=True,
+                                           truncation=True,
+                                           max_length=512,
+                                           return_tensors="pt")
 
-        second_part_start_index = len(tokens)
-        for token in tokenized_text2:
-            if token == "@":
-                masked_indices.append(len(tokens))
-                tokens.append("[MASK]")
-            else:
-                tokens.append(token)
-            segment_ids.append(1)
-            input_mask.append(1)
+    def calculate_next_sentence_prediction(self,
+                                           sent1: str,
+                                           sent2: str,
+                                           model_name: str = LIST_OF_MODEL_NAMES[0]):
 
-        tokens.append("[SEP]")
-        segment_ids.append(1)
-        input_mask.append(1)
-        token_length = len(tokens)
-        input_ids = self.tokenizer.convert_tokens_to_ids(tokens)
+        inputs = self.vectorize_maked_instance(sent1, sent2, model_name)
+        inputs = inputs.to(self.device)
 
-        return input_ids, segment_ids, input_mask, token_length, second_part_start_index, masked_indices, tokens
-
-    def calculate_next_sentence_prediction(self, sent1, sent2):
-        tokenized_text1 = self.tokenizer.tokenize(sent1)
-        tokenized_text2 = self.tokenizer.tokenize(sent2)
-
-        input_ids, segment_ids, input_mask, token_length, second_part_start_index, masked_indices, tokens = self.vectorize_maked_instance(
-            tokenized_text1, tokenized_text2)
-        input_tensor = torch.tensor([input_ids])
-        segment_tensor = torch.tensor([segment_ids])
-        mask_tensor = torch.tensor([input_mask])
-
-        _, seq_score = self.model(input_tensor, segment_tensor, mask_tensor)
+        _, seq_score = self.models[model_name](**inputs)
 
         win_idx = torch.argmax(seq_score, dim=1).item()
         lose_idx = 0
         if win_idx == 0:
             lose_idx = 1
 
-        seq_score = seq_score.detach().numpy()
+        seq_score = seq_score.detach().to("cpu").numpy()
 
         return win_idx, lose_idx, round(seq_score[0][win_idx], 3), round(seq_score[0][lose_idx], 3)
 
-    def calculate_bert_masked_per_token(self, sent1, sent2, k = 30):
-        # print("calculating the representations . . . ")
-        # print(self.cache.volume())
-        tokenized_text1 = self.tokenizer.tokenize(sent1)
-        tokenized_text2 = self.tokenizer.tokenize(sent2)
+    def calculate_bert_masked_per_token(self,
+                                        sent1: str,
+                                        sent2: str,
+                                        model_name: str = LIST_OF_MODEL_NAMES[0],
+                                        k: int = 30):
 
-        # assert "@" in tokenized_text2, "there is no masken token in the 2nd sentence"
+        inputs = self.vectorize_maked_instance(sent1, sent2, model_name)
+        tok_ids_list = inputs['input_ids'].squeeze(0).tolist()
+        print(tok_ids_list)
 
-        input_ids, segment_ids, input_mask, token_length, second_part_start_index, masked_indices, tokens = self.vectorize_maked_instance(
-            tokenized_text1, tokenized_text2)
+        inputs = inputs.to(self.device)
+        predictions = self.models[model_name](**inputs)
 
-        input_tensor = torch.tensor([input_ids])
-        segment_tensor = torch.tensor([segment_ids])
-        mask_tensor = torch.tensor([input_mask])
+        predicted_tokens = {}
 
-        # Predict all tokens
-        predictions, _ = self.model(input_tensor, segment_tensor, mask_tensor)
+        tokens = self.tokenizers[model_name].convert_ids_to_tokens(tok_ids_list)
 
-        predictedTokens = {}
-
-        import numpy as np
-
-        # if len(masked_indices) == 0:
+        token_length = inputs['input_ids'].size(1)
         masked_indices = list(np.arange(0, token_length))
 
-        print("masked_indices: " + str(masked_indices))
+        prediction_logits = predictions["logits"]
 
         # calculating predictions
         for ind in masked_indices:
-            top_scores, top_indices = torch.topk(predictions[0, ind], k)
+            top_scores, top_indices = torch.topk(prediction_logits[0, ind], k)
             top_scores = top_scores.cpu().tolist()
             top_indices = top_indices.cpu().tolist()
-            predictedTokens[ind] = [(self.tokenizer.convert_ids_to_tokens([id])[0], normlalize(s)) for id, s in
-                                    zip(top_indices, top_scores)]
+            predicted_tokens[ind] = [(self.tokenizers[model_name].convert_ids_to_tokens([_id])[0], normlalize(s))
+                                     for _id, s in zip(top_indices, top_scores)]
 
-        return predictedTokens, tokens
+        return predicted_tokens, tokens
 
-    def calculate_bert_masked_beam_search(self, sent1, sent2, beam_size):
-        # print(self.cache.volume())
-        tokens1 = self.tokenizer.tokenize(sent1)
-        tokens2 = self.tokenizer.tokenize(sent2)
+    def calculate_bert_masked_beam_search(self,
+                                          sent1: str,
+                                          sent2: str,
+                                          beam_size: int,
+                                          model_name: str):
+
+        inputs = self.vectorize_maked_instance(sent1, sent2, model_name)
+
+        tokens1 = self.tokenizers[model_name].tokenize(sent1)
+        tokens2 = self.tokenizers[model_name].tokenize(sent2)
 
         predictedTokens = {}
 
         def beam_search(tokenized_text1, tokenized_text2, selected_scores, selected_tokens):
             # print("-------")
-            input_ids, segment_ids, input_mask, token_length, second_part_start_index, masked_indices, tokens = self.vectorize_maked_instance(
-                tokenized_text1, tokenized_text2)
 
             output_list = []
             if len(masked_indices) > 0:
@@ -137,22 +121,19 @@ class BERT_LM_predictions:
                 segment_tensor = torch.tensor([segment_ids])
 
                 # Predict all tokens
-                predictions, _ = self.model(input_tensor, segment_tensor)
+                predictions, _ = self.models[model_name](**inputs)
 
                 # calculating predictions
                 ind = masked_indices[0]  # take the first index
                 top_scores, top_indices = torch.topk(predictions[0, ind], 10)
                 top_scores = top_scores.cpu().tolist()
                 top_indices = top_indices.cpu().tolist()
-                predicted = [(self.tokenizer.convert_ids_to_tokens([id])[0], normlalize(s)) for id, s in
+                predicted = [(self.tokenizers[model_name].convert_ids_to_tokens([id])[0], normlalize(s)) for id, s in
                              zip(top_indices, top_scores)]
 
                 # replace the first mask with top tokens:
                 for token, score in predicted[0:beam_size]:
-                    # print(token)
-                    # print(masked_indices)
-                    # print(ind)
-                    # print(tokenized_text2)
+
                     tokenized_text2_new = tokenized_text2.copy()
                     tokenized_text2_new[ind - 2 - len(tokenized_text1)] = token  # 2 extra shift for [CLS] and [SEP]
                     # print(tokenized_text2_new)
@@ -240,12 +221,12 @@ def normlalize(number):
 
 if __name__ == '__main__':
     BLM = BERT_LM_predictions()
-    # output = BLM.calculate_bert_masked_per_token("", "Who was Jim Henson ? Jim @ was a puppeteer")
+    output = BLM.calculate_bert_masked_per_token("", "Who was Jim Henson ? Jim @ was a puppeteer")
     # output = BLM.calculate_bert_masked_beam_search("abc", "@ and @ is located in USA. ", beam_size=2)
     # output = BLM.set_expansion(["Ford", "Honda"])
     # output = BLM.set_expansion(["Ford", "Nixon"])
     # output = BLM.set_expansion(["Ford", "Chevy"])
     # output = BLM.set_expansion(["Harrison Ford", "Depp"])
     # output = BLM.set_expansion(["Safari", "Trip"])
-    output = BLM.set_expansion(["Safari", "I.e."])
+    # output = BLM.set_expansion(["Safari", "I.e."])
     print(output)

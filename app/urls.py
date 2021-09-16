@@ -21,6 +21,6 @@ urlpatterns = [
     path('admin/', admin.site.urls),
 
     path('', views.bert_demo),
-    path('<str:sent1>/<str:sent2>/<str:alg>', views.bert_calculations),
+    path('<str:sent1>/<str:sent2>/<str:alg>/<str:model_name>', views.bert_calculations),
     path('status/', views.get_server_status),
 ]
