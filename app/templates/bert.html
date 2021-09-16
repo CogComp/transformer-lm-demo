@@ -20,7 +20,7 @@
             crossorigin="anonymous"></script>
 
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    <title>BERT demo</title>
+    <title>CogComp Transformer Language Model Demo</title>
     {% csrf_token %}
 </head>
 <body>
@@ -61,31 +61,51 @@
 <div class="container">
     <div id="jumbo_header" class="jumbotron jumbotron-fluid" style="display: none">
         <div class="container">
-            <h1 class="display-4">BERT Demo</h1>
+            <h1 class="display-4">CogComp Transformer Language Model</h1>
         </div>
     </div>
 
     <br>
-    <div class="dropdown">
-      <a class="btn btn-secondary dropdown-toggle" href="#" role="button" id="example_dropdown" data-bs-toggle="dropdown" aria-expanded="false">
-        Example Inputs
-      </a>
-      <ul class="dropdown-menu" aria-labelledby="example_dropdown">
-        <li><a id="btn_example1" class="dropdown-item" href="#">I eat @.</a></li>
-        <li><a id="btn_example2" class="dropdown-item" href="#">@ is a professor.</a></li>
-        <li><a id="btn_example3" class="dropdown-item" href="#">@ is a nurse.</a></li>
-      </ul>
+    <div class="row">
+        <div class="col-lg-3 col-sm-6 col-md-4">
+            <div class="dropdown">
+                <a class="btn btn-primary dropdown-toggle" href="#" role="button" id="model_select_dropdown"
+                   data-bs-toggle="dropdown" aria-expanded="false">
+                    Choose Model..
+                </a>
+                <ul class="dropdown-menu" aria-labelledby="model_select_dropdown">
+                    {% for name in model_list %}
+                        <li><a class="model_select" href="#">{{ name }}</a></li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+
+        <div class="col-lg-3 col-sm-6 col-md-4">
+            <div class="dropdown">
+                <a class="btn btn-secondary dropdown-toggle" href="#" role="button" id="example_dropdown"
+                   data-bs-toggle="dropdown" aria-expanded="false">
+                    Example Inputs
+                </a>
+                <ul class="dropdown-menu" aria-labelledby="example_dropdown">
+                    <li><a id="btn_example1" class="dropdown-item" href="#">I eat @.</a></li>
+                    <li><a id="btn_example2" class="dropdown-item" href="#">@ is a professor.</a></li>
+                    <li><a id="btn_example3" class="dropdown-item" href="#">@ is a nurse.</a></li>
+                </ul>
+            </div>
+        </div>
     </div>
+
 
     <div class="input-group">
 
         <br>
 
     </div>
-    <input id="inputB" type="text" aria-label="B" value="{{ sent2 }}" class="form-control" style="width: 100%"
+    <input id="inputA" type="text" aria-label="B" value="{{ sent1 }}" class="form-control" style="width: 100%"
            placeholder="Input sentence (with at least one mask '@' token)">
     <br>
-    <input id="inputA" type="text" aria-label="A" value="{{ sent1 }}" class="form-control" style="width: 100%"
+    <input id="inputB" type="text" aria-label="A" value="{{ sent2 }}" class="form-control" style="width: 100%"
            placeholder="(Optional) second sentence">
     <br>
 
@@ -163,7 +183,7 @@
 
     function bind_example(btn, example_text) {
         $(btn).click(function() {
-            $("#inputB").val(example_text);
+            $("#inputA").val(example_text);
         });
     }
 
@@ -172,7 +192,7 @@
         || server_url.includes("greedy")
         || server_url.includes("beamSearch")
         || server_url.includes("nextSentence")) {
-        server_url = server_url.split("/").slice(0,-3).join('/');
+        server_url = server_url.split("/").slice(0,-4).join('/');
         server_url += "/"
         console.log(server_url);
     }
@@ -185,9 +205,15 @@
         let $btn2 = $('#btn_example2');
         let $btn3 = $('#btn_example3');
 
+        $("#model_select_dropdown").text("{{ model_list.0 }}");
+
         bind_example($btn1, $btn1.text());
         bind_example($btn2, $btn2.text());
         bind_example($btn3, $btn3.text());
+    });
+
+    $('.model_select').click(function(){
+        $("#model_select_dropdown").text($(this).text());
     });
 
     $('#button-clean').click(function () {
@@ -195,14 +221,14 @@
     });
 
     $('#button-run').click(function () {
-        if ($('#inputB').val().trim() === "") {
-            $('#inputB').addClass("border-danger");
+        if ($('#inputA').val().trim() === "") {
+            $('#inputA').addClass("border-danger");
         } else {
             var A = $('#inputA').val().trim();
             var B = $('#inputB').val().trim();
 
-            if (A.length === 0) {
-                A = " "
+            if (B.length === 0) {
+                B = " "
             }
 
             var alg = "";
@@ -221,7 +247,8 @@
 
             document.getElementById("loader-main").style.visibility = "visible";
 
-            window.location.href = server_url + encodeURIComponent(A) + "/" + encodeURIComponent(B) + "/" + alg;
+            let model_name = $('#model_select_dropdown').text();
+            window.location.href = server_url + encodeURIComponent(A) + "/" + encodeURIComponent(B) + "/" + alg + "/" + model_name;
         }
     });
 
