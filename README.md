@@ -1,4 +1,6 @@
-# BERT demo
+# CogComp Transformer Language Models Demo
+
+[Link to demo](http://dickens.seas.upenn.edu:4001/)
 
 This is how it should look like: 
 
