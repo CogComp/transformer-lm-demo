@@ -7,6 +7,7 @@ from transformers import AutoModelForMaskedLM, AutoTokenizer
 
 LIST_OF_MODEL_NAMES = ["bert-base-uncased", "roberta-base", "xlm-roberta-base"]
 
+
 class BERT_LM_predictions:
 
     max_batch_size = 250  # max number of instanes grouped together
@@ -106,74 +107,95 @@ class BERT_LM_predictions:
                                           model_name: str):
 
         inputs = self.vectorize_maked_instance(sent1, sent2, model_name)
-
-        tokens1 = self.tokenizers[model_name].tokenize(sent1)
-        tokens2 = self.tokenizers[model_name].tokenize(sent2)
-
+        initial_tok_ids_list = inputs['input_ids'].squeeze(0).tolist()
+        tok_ids_list = initial_tok_ids_list.copy()
         predictedTokens = {}
 
-        def beam_search(tokenized_text1, tokenized_text2, selected_scores, selected_tokens):
-            # print("-------")
+        def compute_masked_indices(token_ids: List[int]) -> List[int]:
+            masked_indices = []
+            for tid, tok in enumerate(token_ids):
+                if tok == self.tokenizers[model_name].mask_token_id:
+                    masked_indices.append(tid)
+
+            return masked_indices
+
+        initial_masked_indices = compute_masked_indices(tok_ids_list)
+
+        def beam_search(selected_scores, selected_tokens):
+            """
+
+            :param selected_scores:
+            :param selected_tokens:
+            :return:
+            """
+
+            masked_indices = compute_masked_indices(tok_ids_list)
 
             output_list = []
             if len(masked_indices) > 0:
-                input_tensor = torch.tensor([input_ids])
-                segment_tensor = torch.tensor([segment_ids])
 
                 # Predict all tokens
-                predictions, _ = self.models[model_name](**inputs)
+                model_outputs = self.models[model_name](**inputs)
+
+                predictions = model_outputs["logits"]
 
                 # calculating predictions
                 ind = masked_indices[0]  # take the first index
                 top_scores, top_indices = torch.topk(predictions[0, ind], 10)
                 top_scores = top_scores.cpu().tolist()
                 top_indices = top_indices.cpu().tolist()
-                predicted = [(self.tokenizers[model_name].convert_ids_to_tokens([id])[0], normlalize(s)) for id, s in
-                             zip(top_indices, top_scores)]
+
+                predicted = [(id, normlalize(s)) for id, s in zip(top_indices, top_scores)]
 
                 # replace the first mask with top tokens:
-                for token, score in predicted[0:beam_size]:
+                for token_id, score in predicted[0:beam_size]:
 
-                    tokenized_text2_new = tokenized_text2.copy()
-                    tokenized_text2_new[ind - 2 - len(tokenized_text1)] = token  # 2 extra shift for [CLS] and [SEP]
+                    # tokenized_text2_new = tokenized_text2.copy()
+                    # tokenized_text2_new[ind - 2 - len(tokenized_text1)] = token  # 2 extra shift for [CLS] and [SEP]
                     # print(tokenized_text2_new)
 
+                    tok_ids_list[ind] = token_id
+
                     selected_tokens_new = selected_tokens.copy()
-                    selected_tokens_new.append(token)
+                    selected_tokens_new.append(self.tokenizers[model_name].convert_ids_to_tokens([token_id])[0])
 
                     selected_scores_new = selected_scores.copy()
                     selected_scores_new.append(score)
 
                     if len(masked_indices) > 1:
                         output_list.extend(
-                            beam_search(tokenized_text1, tokenized_text2_new, selected_scores_new, selected_tokens_new))
+                            beam_search(selected_scores_new, selected_tokens_new))
                     else:
                         output_list.append((selected_scores_new, selected_tokens_new))
                 # print("intermediate: " + str(output_list))
             return output_list
 
-        predicted_sequences = beam_search(tokens1, tokens2, [], [])
+        predicted_sequences = beam_search([], [])
 
         # sorted list
         predicted_sequences = sorted(predicted_sequences, key=lambda x: -sum(x[0]))
         # for score, tokens in predicted_sequences:
 
-        input_ids, segment_ids, input_mask, token_length, second_part_start_index, masked_indices, tokens = self.vectorize_maked_instance(
-            tokens1, tokens2)
+        # input_ids, segment_ids, input_mask, token_length, second_part_start_index, masked_indices, tokens = self.vectorize_maked_instance(
+            # tokens1, tokens2)
 
-        assert len(masked_indices) == len(predicted_sequences[0][0])
 
-        for ind in masked_indices:
+        # _masked_ids = compute_masked_indices(tok_ids_list)
+        # assert len(masked_indices) == len(predicted_sequences[0][0])
+
+        for ind in initial_masked_indices:
             predictedTokens[ind] = []
         for scores, sequence in predicted_sequences[0:10]:
             for i, s in enumerate(scores):
                 t = sequence[i]
-                index = masked_indices[i]
+                index = initial_masked_indices[i]
                 predictedTokens[index].append((t, s))
 
         # selected the best sequences
         # print(predicted_sequences)
         # print(predictedTokens)
+
+        tokens = self.tokenizers[model_name].convert_ids_to_tokens(initial_tok_ids_list)
 
         return predictedTokens, tokens
 
