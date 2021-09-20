@@ -42,18 +42,18 @@ def bert_calculations(request, sent1, sent2, alg, model_name):
         predicted_tokens, tokens = BLM.calculate_bert_masked_per_token(sent1, sent2, model_name=model_name)
         print("Tokens: " + str(tokens))
     elif alg == "greedy":
-        predicted_tokens, tokens = BLM.calculate_bert_masked_beam_search(sent1, sent2, beam_size=1)
+        predicted_tokens, tokens = BLM.calculate_bert_masked_beam_search(sent1, sent2, beam_size=1, model_name=model_name)
     elif alg == "beamSearch":
-        predicted_tokens, tokens = BLM.calculate_bert_masked_beam_search(sent1, sent2, beam_size=3)
-    elif alg == "nextSentence":
-        ns_label, ns_label_neg, ns_label_score, ns_label_neg_score = BLM.calculate_next_sentence_prediction(sent1, sent2)
-        predicted_tokens, tokens = BLM.calculate_bert_masked_per_token(sent1, sent2, model_name)
-        if ns_label == 1:
-            ns_label = "False"
-            ns_label_neg = "True"
-        else:
-            ns_label = "True"
-            ns_label_neg = "False"
+        predicted_tokens, tokens = BLM.calculate_bert_masked_beam_search(sent1, sent2, beam_size=3, model_name=model_name)
+    # elif alg == "nextSentence":
+    #     ns_label, ns_label_neg, ns_label_score, ns_label_neg_score = BLM.calculate_next_sentence_prediction(sent1, sent2)
+    #     predicted_tokens, tokens = BLM.calculate_bert_masked_per_token(sent1, sent2, model_name)
+    #     if ns_label == 1:
+    #         ns_label = "False"
+    #         ns_label_neg = "True"
+    #     else:
+    #         ns_label = "True"
+    #         ns_label_neg = "False"
     if ns_label == "True":
         ns_label_color = "green"
 
