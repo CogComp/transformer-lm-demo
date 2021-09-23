@@ -37,7 +37,7 @@ class BERT_LM_predictions:
     def cleanup_token(self,
                       t : str) -> str:
         # XLM roberta
-        t = t.replace("__", "")
+        t = t.replace("▁", "")
 
         # roberta
         t = t.replace("Ġ", "")
