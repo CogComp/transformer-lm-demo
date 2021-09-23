@@ -88,7 +88,7 @@
                     Example Inputs
                 </a>
                 <ul class="dropdown-menu" aria-labelledby="example_dropdown">
-                    <li><a id="btn_example1" class="dropdown-item" href="javascript:void(0)">I eat @.</a></li>
+                    <li><a id="btn_example1" class="dropdown-item" href="javascript:void(0)">I @ an apple.</a></li>
                     <li><a id="btn_example2" class="dropdown-item" href="javascript:void(0)">@ is a professor.</a></li>
                     <li><a id="btn_example3" class="dropdown-item" href="javascript:void(0)">@ is a nurse.</a></li>
                 </ul>
@@ -207,7 +207,7 @@
         let $btn3 = $('#btn_example3');
 
         let url_parts = window.location.href.split("/");
-        if (url_parts.length > 3) {
+        if (url_parts.length > 5) {
             $("#model_select_dropdown").text(url_parts[url_parts.length - 1]);
         }
         else {
