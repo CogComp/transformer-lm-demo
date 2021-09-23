@@ -34,6 +34,16 @@ class BERT_LM_predictions:
             self.models[model] = self.models[model].to(self.device)
             self.models[model].eval()
 
+    def cleanup_token(self,
+                      t : str) -> str:
+        # XLM roberta
+        t = t.replace("▁", "")
+
+        # roberta
+        t = t.replace("Ġ", "")
+
+        return t
+
     def vectorize_maked_instance(self,
                                  text1: str,
                                  text2: str = "",
@@ -84,7 +94,7 @@ class BERT_LM_predictions:
         predicted_tokens = {}
 
         tokens = self.tokenizers[model_name].convert_ids_to_tokens(tok_ids_list)
-
+        tokens = [self.cleanup_token(t) for t in tokens]
         token_length = inputs['input_ids'].size(1)
         masked_indices = list(np.arange(0, token_length))
 
@@ -95,7 +105,7 @@ class BERT_LM_predictions:
             top_scores, top_indices = torch.topk(prediction_logits[0, ind], k)
             top_scores = top_scores.cpu().tolist()
             top_indices = top_indices.cpu().tolist()
-            predicted_tokens[ind] = [(self.tokenizers[model_name].convert_ids_to_tokens([_id])[0], normlalize(s))
+            predicted_tokens[ind] = [(self.cleanup_token(self.tokenizers[model_name].convert_ids_to_tokens([_id])[0]), normlalize(s))
                                      for _id, s in zip(top_indices, top_scores)]
 
         return predicted_tokens, tokens
@@ -189,14 +199,14 @@ class BERT_LM_predictions:
             for i, s in enumerate(scores):
                 t = sequence[i]
                 index = initial_masked_indices[i]
-                predictedTokens[index].append((t, s))
+                predictedTokens[index].append((self.cleanup_token(t), s))
 
         # selected the best sequences
         # print(predicted_sequences)
         # print(predictedTokens)
 
         tokens = self.tokenizers[model_name].convert_ids_to_tokens(initial_tok_ids_list)
-
+        tokens = [self.cleanup_token(t) for t in tokens]
         return predictedTokens, tokens
 
     def set_expansion(self, seed_set):
