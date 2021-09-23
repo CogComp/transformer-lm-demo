@@ -61,7 +61,7 @@
 <div class="container">
     <div id="jumbo_header" class="jumbotron jumbotron-fluid" style="display: none">
         <div class="container">
-            <h1 class="display-4">CogComp Transformer Language Model</h1>
+            <h1 class="display-4">CogComp Transformer Language Model Demo</h1>
         </div>
     </div>
 
@@ -197,6 +197,7 @@
         console.log(server_url);
     }
     $(function() {
+
         if (!in_iframe()) {
             $('#jumbo_header').show();
         }
@@ -205,7 +206,13 @@
         let $btn2 = $('#btn_example2');
         let $btn3 = $('#btn_example3');
 
-        $("#model_select_dropdown").text("{{ model_list.0 }}");
+        let url_parts = window.location.href.split("/");
+        if (url_parts.length > 3) {
+            $("#model_select_dropdown").text(url_parts[url_parts.length - 1]);
+        }
+        else {
+            $("#model_select_dropdown").text("{{ model_list.0 }}");
+        }
 
         bind_example($btn1, $btn1.text());
         bind_example($btn2, $btn2.text());
